@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hare's Campsite</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏕️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+/* Colors sampled from Hare (Camping)'s own textures */
+:root{
+  --mist:#eceeea;      /* her silver hair */
+  --olive:#70725b;     /* camping jacket */
+  --olive-deep:#4a4c3b;
+  --maroon:#8a3a40;    /* scarf + weapon */
+  --halo:#e2c94a;      /* halo + energy can */
+  --eye:#3c5b4c;       /* her eyes */
+  --char:#37363a;      /* boots + pants */
+  --paper:#fbfaf6;
+  --ink:#2a2b24;
+  --soft:#62645a;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --mist:#1d1f19; --paper:#272920; --ink:#eceeea; --soft:#b3b6a4; --olive:#8e917a; --olive-deep:#c5c8b2; }
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--mist);color:var(--ink);font-family:"Zen Maru Gothic",system-ui,-apple-system,sans-serif;line-height:1.55}
+main{max-width:560px;margin:0 auto;padding:22px 16px 56px}
+
+header{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.halo{flex:none;width:46px;height:46px;border-radius:50%;border:5px solid var(--halo);box-shadow:inset 0 0 0 4px var(--char)}
+h1{font-weight:900;font-size:1.75rem;line-height:1.1;margin:0}
+header p{margin:2px 0 0;color:var(--soft);font-size:.92rem}
+
+.stage{position:relative;background:var(--olive);border-radius:28px 28px 8px 8px;overflow:hidden}
+.stage::after{content:"";position:absolute;left:0;right:0;bottom:0;height:10px;
+  background:repeating-linear-gradient(90deg,var(--maroon) 0 18px,var(--halo) 18px 36px)}
+model-viewer{width:100%;height:min(62vh,440px);--poster-color:transparent;background:radial-gradient(circle at 50% 40%,#8a8c72,var(--olive) 70%)}
+.now{position:absolute;top:12px;left:12px;background:var(--paper);color:var(--ink);font-weight:700;font-size:.9rem;padding:6px 12px;border-radius:999px}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:#f3f2e8;font-weight:700;pointer-events:none}
+.loading[hidden]{display:none}
+
+.ar{display:block;width:100%;margin:12px 0 4px;padding:17px;border:none;border-radius:8px 8px 22px 22px;
+  background:var(--maroon);color:#fff;font:inherit;font-weight:900;font-size:1.2rem;text-align:center;text-decoration:none;cursor:pointer}
+.ar:active{transform:translateY(1px)}
+.note{font-size:.85rem;color:var(--soft);margin:6px 2px 0;min-height:1.2em}
+.note.err{color:var(--maroon);font-weight:700}
+
+h2{font-size:1.05rem;font-weight:900;margin:26px 0 8px;color:var(--olive-deep)}
+.grid{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-weight:700;font-size:.92rem;padding:9px 14px;border-radius:999px;cursor:pointer;
+  background:var(--paper);color:var(--ink);border:2px solid transparent}
+.chip[aria-pressed="true"]{background:var(--eye);color:#fff}
+.chip:hover{border-color:var(--olive)}
+.chip:focus-visible,.ar:focus-visible{outline:3px solid var(--halo);outline-offset:2px}
+
+details{margin-top:30px;background:var(--paper);border-radius:16px;padding:12px 16px}
+summary{font-weight:900;cursor:pointer}
+details ol{padding-left:1.2em;color:var(--soft)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="halo" aria-hidden="true"></div>
+    <div>
+      <h1>Hare's Campsite</h1>
+      <p>Pick an animation, then bring her into your room.</p>
+    </div>
+  </header>
+
+  <div class="stage">
+    <model-viewer id="mv" camera-controls autoplay shadow-intensity="1" exposure="1.05"
+      camera-orbit="20deg 80deg auto" alt="3D model of Hare (Camping)" interaction-prompt="none"></model-viewer>
+    <span class="now" id="now">Victory</span>
+    <div class="loading" id="loading">Unpacking the tent…</div>
+  </div>
+
+  <a class="ar" id="arBtn" href="#">View in my room</a>
+  <p class="note" id="note"></p>
+
+  <div id="groups"></div>
+
+  <details>
+    <summary>Tips for AR</summary>
+    <ol>
+      <li>Allow camera access when asked.</li>
+      <li>Point at the floor and move your phone slowly side to side until she appears.</li>
+      <li>Drag to move her, pinch to resize, and twist with two fingers to turn her.</li>
+      <li>Animations loop, so the "…loop" ones look the smoothest.</li>
+    </ol>
+  </details>
+</main>
+
+<script>
+/* If you put the .glb files in a folder, write its name here, e.g. "models/". Leave "" if they're next to index.html. */
+const FOLDER = "";
+const PREFIX = "Hare_Camping_";
+
+const GROUPS = [
+  ["Victory", [["Victory_Start","Victory"],["Victory_End","Victory finish"]]],
+  ["EX skill", [["Exs","EX skill"],["Exs_Cutin","EX cut-in"]]],
+  ["Café", [["Cafe_Idle","Relaxing"],["Cafe_Walk","Walking"],["Cafe_Reaction","Reaction"]]],
+  ["Standing combat", [["Normal_Idle","Ready"],["Normal_Attack_Start","Aim"],["Normal_Attack_Ing","Firing loop"],["Normal_Attack_End","Lower weapon"],["Normal_Attack_Delay","Hold aim"],["Normal_Reload","Reload"],["Normal_Reload_Random","Reload (alt)"],["Normal_Callsign","Callsign"]]],
+  ["Kneeling combat", [["Kneel_Idle","Ready"],["Kneel_Attack_Start","Aim"],["Kneel_Attack_Ing","Firing loop"],["Kneel_Attack_End","Lower weapon"],["Kneel_Attack_Delay","Hold aim"],["Kneel_Reload","Reload"],["Kneel_Reload_Random","Reload (alt)"]]],
+  ["Moving", [["Move_Ing","Running loop"],["Move_Jump","Jump"],["Move_End_Normal","Stop, standing"],["Move_End_Kneel","Stop, kneeling"]]],
+  ["Formation", [["Formation_Idle","Idle"],["Formation_Pickup","Picked"]]],
+  ["Taking hits", [["Vital_Panic","Panic"],["Vital_Retreat","Retreat"],["Vital_Dying_ing","Down loop"],["Vital_Death","Knocked out"]]],
+  ["Other", [["Public01","Lobby pose"]]]
+];
+
+const mv = document.getElementById("mv");
+const arBtn = document.getElementById("arBtn");
+const note = document.getElementById("note");
+const nowEl = document.getElementById("now");
+const loading = document.getElementById("loading");
+const isAndroid = /Android/i.test(navigator.userAgent);
+
+function fileUrl(key){ return new URL(FOLDER + PREFIX + key + ".glb", location.href).href; }
+function arLink(url){
+  return "intent://arvr.google.com/scene-viewer/1.0?file=" + encodeURIComponent(url) +
+    "&mode=ar_only#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;" +
+    "S.browser_fallback_url=" + encodeURIComponent("https://developers.google.com/ar/devices") + ";end;";
+}
+
+function select(key, label, btn){
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed","false"));
+  btn.setAttribute("aria-pressed","true");
+  nowEl.textContent = label;
+  loading.hidden = false;
+  note.className = "note"; note.textContent = "";
+  const url = fileUrl(key);
+  mv.src = url;
+  arBtn.href = arLink(url);
+  history.replaceState(null, "", "#" + key);
+}
+
+mv.addEventListener("load", () => { loading.hidden = true; });
+mv.addEventListener("error", () => {
+  loading.hidden = true;
+  note.className = "note err";
+  note.textContent = "Couldn't find " + PREFIX + (location.hash.slice(1) || "") + ".glb. Check it's uploaded next to index.html with this exact name.";
+});
+arBtn.addEventListener("click", e => {
+  if (!isAndroid){
+    e.preventDefault();
+    note.className = "note err";
+    note.textContent = "AR here needs an Android phone with Google Play Services for AR. Open this page on your phone.";
+  }
+});
+
+const host = document.getElementById("groups");
+let start = null; const wanted = location.hash.slice(1);
+GROUPS.forEach(([title, items]) => {
+  const h = document.createElement("h2"); h.textContent = title; host.appendChild(h);
+  const g = document.createElement("div"); g.className = "grid"; host.appendChild(g);
+  items.forEach(([key, label]) => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.type = "button"; b.textContent = label;
+    b.setAttribute("aria-pressed","false");
+    b.addEventListener("click", () => select(key, title === "Victory" || title === "EX skill" || title === "Other" ? label : title + ": " + label, b));
+    g.appendChild(b);
+    if (key === wanted) start = b;
+  });
+});
+(start || document.querySelector(".chip")).click();
+</script>
+</body>
+</html>
