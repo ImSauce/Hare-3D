@@ -53,6 +53,10 @@ model-viewer{width:100%;height:min(62vh,440px);--poster-color:transparent;backgr
 .note{font-size:.85rem;color:var(--soft);margin:6px 2px 0;min-height:1.2em}
 .note.err{color:var(--maroon);font-weight:700}
 
+.outfits{display:flex;gap:6px;background:var(--paper);padding:5px;border-radius:999px;margin:0 0 14px}
+.outfit{flex:1;font:inherit;font-weight:900;font-size:1rem;padding:10px;border:none;border-radius:999px;background:transparent;color:var(--soft);cursor:pointer}
+.outfit[aria-selected="true"]{background:var(--olive);color:#fff}
+.outfit:focus-visible{outline:3px solid var(--halo);outline-offset:2px}
 h2{font-size:1.05rem;font-weight:900;margin:26px 0 8px;color:var(--olive-deep)}
 .grid{display:flex;flex-wrap:wrap;gap:8px}
 .chip{font:inherit;font-weight:700;font-size:.92rem;padding:9px 14px;border-radius:999px;cursor:pointer;
@@ -73,13 +77,18 @@ details ol{padding-left:1.2em;color:var(--soft)}
     <div class="halo" aria-hidden="true"></div>
     <div>
       <h1>Hare's Campsite</h1>
-      <p>Pick an animation, then bring her into your room.</p>
+      <p>Pick an outfit and an animation, then bring her into your room.</p>
     </div>
   </header>
 
+  <div class="outfits" role="tablist" aria-label="Outfit">
+    <button class="outfit" role="tab" data-outfit="Camping" aria-selected="true">Camping</button>
+    <button class="outfit" role="tab" data-outfit="Default" aria-selected="false">Default</button>
+  </div>
+
   <div class="stage">
     <model-viewer id="mv" camera-controls autoplay shadow-intensity="1" exposure="1.05"
-      camera-orbit="20deg 80deg auto" alt="3D model of Hare (Camping)" interaction-prompt="none"></model-viewer>
+      camera-orbit="20deg 80deg auto" alt="3D model of Hare" interaction-prompt="none"></model-viewer>
     <span class="now" id="now">Victory</span>
     <div class="loading" id="loading">Unpacking the tent…</div>
   </div>
@@ -103,51 +112,80 @@ details ol{padding-left:1.2em;color:var(--soft)}
 <script>
 /* If you put the .glb files in a folder, write its name here, e.g. "models/". Leave "" if they're next to index.html. */
 const FOLDER = "";
-const PREFIX = "Hare_Camping_";
 
-const GROUPS = [
-  ["Victory", [["Victory_Start","Victory"],["Victory_End","Victory finish"]]],
-  ["EX skill", [["Exs","EX skill"],["Exs_Cutin","EX cut-in"]]],
-  ["Café", [["Cafe_Idle","Relaxing"],["Cafe_Walk","Walking"],["Cafe_Reaction","Reaction"]]],
-  ["Standing combat", [["Normal_Idle","Ready"],["Normal_Attack_Start","Aim"],["Normal_Attack_Ing","Firing loop"],["Normal_Attack_End","Lower weapon"],["Normal_Attack_Delay","Hold aim"],["Normal_Reload","Reload"],["Normal_Reload_Random","Reload (alt)"],["Normal_Callsign","Callsign"]]],
-  ["Kneeling combat", [["Kneel_Idle","Ready"],["Kneel_Attack_Start","Aim"],["Kneel_Attack_Ing","Firing loop"],["Kneel_Attack_End","Lower weapon"],["Kneel_Attack_Delay","Hold aim"],["Kneel_Reload","Reload"],["Kneel_Reload_Random","Reload (alt)"]]],
-  ["Moving", [["Move_Ing","Running loop"],["Move_Jump","Jump"],["Move_End_Normal","Stop, standing"],["Move_End_Kneel","Stop, kneeling"]]],
-  ["Formation", [["Formation_Idle","Idle"],["Formation_Pickup","Picked"]]],
-  ["Taking hits", [["Vital_Panic","Panic"],["Vital_Retreat","Retreat"],["Vital_Dying_ing","Down loop"],["Vital_Death","Knocked out"]]],
-  ["Other", [["Public01","Lobby pose"]]]
-];
+const OUTFITS = {
+  Camping: { prefix: "Hare_Camping_", groups: [
+    ["Victory", [["Victory_Start","Victory"],["Victory_End","Victory finish"]]],
+    ["EX skill", [["Exs","EX skill"],["Exs_Cutin","EX cut-in"]]],
+    ["Café", [["Cafe_Idle","Relaxing"],["Cafe_Walk","Walking"],["Cafe_Reaction","Reaction"]]],
+    ["Standing combat", [["Normal_Idle","Ready"],["Normal_Attack_Start","Aim"],["Normal_Attack_Ing","Firing loop"],["Normal_Attack_End","Lower weapon"],["Normal_Attack_Delay","Hold aim"],["Normal_Reload","Reload"],["Normal_Reload_Random","Reload (alt)"],["Normal_Callsign","Callsign"]]],
+    ["Kneeling combat", [["Kneel_Idle","Ready"],["Kneel_Attack_Start","Aim"],["Kneel_Attack_Ing","Firing loop"],["Kneel_Attack_End","Lower weapon"],["Kneel_Attack_Delay","Hold aim"],["Kneel_Reload","Reload"],["Kneel_Reload_Random","Reload (alt)"]]],
+    ["Moving", [["Move_Ing","Running loop"],["Move_Jump","Jump"],["Move_End_Normal","Stop, standing"],["Move_End_Kneel","Stop, kneeling"]]],
+    ["Formation", [["Formation_Idle","Idle"],["Formation_Pickup","Picked"]]],
+    ["Taking hits", [["Vital_Panic","Panic"],["Vital_Retreat","Retreat"],["Vital_Dying_ing","Down loop"],["Vital_Death","Knocked out"]]],
+    ["Other", [["Public01","Lobby pose"]]]
+  ]},
+  Default: { prefix: "Hare_Default_", groups: [
+    ["Café", [["Cafe_Idle","Relaxing"],["Cafe_Walk","Walking"],["Cafe_Reaction","Reaction"]]],
+    ["Formation", [["Formation_Idle","Idle"]]],
+    ["Special", [["Tactical_Start","Tactical start"],["Cutin","Cut-in"]]]
+  ]}
+};
+const SHORT = ["Victory","EX skill","Other","Special"];
 
 const mv = document.getElementById("mv");
 const arBtn = document.getElementById("arBtn");
 const note = document.getElementById("note");
 const nowEl = document.getElementById("now");
 const loading = document.getElementById("loading");
+const host = document.getElementById("groups");
 const isAndroid = /Android/i.test(navigator.userAgent);
+let currentFile = "";
 
-function fileUrl(key){ return new URL(FOLDER + PREFIX + key + ".glb", location.href).href; }
 function arLink(url){
   return "intent://arvr.google.com/scene-viewer/1.0?file=" + encodeURIComponent(url) +
     "&mode=ar_only#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;" +
     "S.browser_fallback_url=" + encodeURIComponent("https://developers.google.com/ar/devices") + ";end;";
 }
 
-function select(key, label, btn){
-  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed","false"));
+function select(outfit, key, label, btn){
+  host.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed","false"));
   btn.setAttribute("aria-pressed","true");
   nowEl.textContent = label;
   loading.hidden = false;
   note.className = "note"; note.textContent = "";
-  const url = fileUrl(key);
+  currentFile = OUTFITS[outfit].prefix + key + ".glb";
+  const url = new URL(FOLDER + currentFile, location.href).href;
   mv.src = url;
   arBtn.href = arLink(url);
-  history.replaceState(null, "", "#" + key);
+  history.replaceState(null, "", "#" + outfit + "/" + key);
 }
 
+function showOutfit(outfit, wantedKey){
+  document.querySelectorAll(".outfit").forEach(t => t.setAttribute("aria-selected", String(t.dataset.outfit === outfit)));
+  host.innerHTML = "";
+  let start = null;
+  OUTFITS[outfit].groups.forEach(([title, items]) => {
+    const h = document.createElement("h2"); h.textContent = title; host.appendChild(h);
+    const g = document.createElement("div"); g.className = "grid"; host.appendChild(g);
+    items.forEach(([key, label]) => {
+      const b = document.createElement("button");
+      b.className = "chip"; b.type = "button"; b.textContent = label;
+      b.setAttribute("aria-pressed","false");
+      b.addEventListener("click", () => select(outfit, key, SHORT.includes(title) ? label : title + ": " + label, b));
+      g.appendChild(b);
+      if (key === wantedKey) start = b;
+    });
+  });
+  (start || host.querySelector(".chip")).click();
+}
+
+document.querySelectorAll(".outfit").forEach(t => t.addEventListener("click", () => showOutfit(t.dataset.outfit)));
 mv.addEventListener("load", () => { loading.hidden = true; });
 mv.addEventListener("error", () => {
   loading.hidden = true;
   note.className = "note err";
-  note.textContent = "Couldn't find " + PREFIX + (location.hash.slice(1) || "") + ".glb. Check it's uploaded next to index.html with this exact name.";
+  note.textContent = "Couldn't find " + currentFile + ". Check it's uploaded next to index.html with this exact name.";
 });
 arBtn.addEventListener("click", e => {
   if (!isAndroid){
@@ -157,21 +195,9 @@ arBtn.addEventListener("click", e => {
   }
 });
 
-const host = document.getElementById("groups");
-let start = null; const wanted = location.hash.slice(1);
-GROUPS.forEach(([title, items]) => {
-  const h = document.createElement("h2"); h.textContent = title; host.appendChild(h);
-  const g = document.createElement("div"); g.className = "grid"; host.appendChild(g);
-  items.forEach(([key, label]) => {
-    const b = document.createElement("button");
-    b.className = "chip"; b.type = "button"; b.textContent = label;
-    b.setAttribute("aria-pressed","false");
-    b.addEventListener("click", () => select(key, title === "Victory" || title === "EX skill" || title === "Other" ? label : title + ": " + label, b));
-    g.appendChild(b);
-    if (key === wanted) start = b;
-  });
-});
-(start || document.querySelector(".chip")).click();
+/* Links look like #Camping/Exs or #Default/Cutin. Old links like #Exs still open the Camping outfit. */
+const [a, b] = decodeURIComponent(location.hash.slice(1)).split("/");
+if (OUTFITS[a]) showOutfit(a, b); else showOutfit("Camping", a);
 </script>
 </body>
 </html>
