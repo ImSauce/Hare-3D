@@ -1,8 +1,8 @@
 # 🏕️ Hare's Campsite
 
-View **Omagari Hare** from *Blue Archive* in augmented reality, in both her **Camping** and **Default** outfits. Place her in your own room with just your phone's camera. No app to install.
+View **Omagari Hare** from *Blue Archive* in augmented reality, in both her **Camping** and **Default** outfits. Place her in your own room with just your phone's camera. No app to install. This is just a personal project so i can have Hare in my room using AR camera.
 
-**▶ Open the site:** https://YOUR-NAME.github.io/ba-models/
+**▶ Open the site:** https://imsauce.github.io/Hare-3D/
 
 ## What it does
 
@@ -52,8 +52,6 @@ Tip: animations loop in AR, so the "loop" ones (firing, running, down) look the 
 ## How it works
 
 The original model contains every animation in one file, but Google Scene Viewer (Android's built-in AR viewer) only plays the first one. So the model was split into **one file per animation**, each keeping only its own animation data. This also made the files much smaller (Camping: about 7.7 MB → 2 MB each; Default: about 1.3 MB → 0.9 MB each), so they load faster.
-
-The site is a single `index.html` using [`<model-viewer>`](https://modelviewer.dev/) for the 3D preview, and it opens Scene Viewer for AR. It's hosted for free on GitHub Pages.
 
 ```
 index.html                     the website (both outfits)
